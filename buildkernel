@@ -1,11 +1,11 @@
 #!/bin/sh
 #
 #	buildkernel automatically builds the linux source tree symlinked in /usr/src/linux.
-#		Also handles initramfs generation, unified kernel generation, upgrading kernel .config to another kernel, 
-#			regenerating grub.cfg, moving and cleaning up build files. 
-#		Modify for your setup.
+#	Also handles initramfs generation, unified kernel generation, upgrading kernel .config to another kernel, 
+#	regenerating grub.cfg, moving and cleaning up build files. 
+#	Modify for your setup.
 #
-#	Made for Gentoo openrc. Dependencies include: 
+#	Made for Gentoo openrc.
 #			1. sys-apps/mlocate for its merging locate database.
 #			2. sys-boot/grub as a bootloader (set up /etc/default/grub).
 #				Add: globs="/boot/EFI/gentoo/distribution/vmlinuz-* /boot/EFI/gentoo/custom/vmlinuz-* /boot/EFI/gentoo/git/vmlinuz-*"
@@ -28,7 +28,9 @@ SECUREBOOTCERT="/usr/share/secureboot/keys/db/db.pem"
 # host names to check for distcc 
 declare -a hosts=("gentoo" "gentwo" "genthree") 
 # thread count for each host name
-declare -a hostsTJ=("6" "16" "8")
+declare -a hostsTJ=("6" "10" "8")
+distcc="false"
+distcc_status=$(rc-service distccd status | grep started)
 
 # Color definitions
 RED='\033[0;31m'
@@ -85,12 +87,11 @@ build_initramfs()
 
 find_total_threads()
 {
-	distcc_status=$(rc-service distccd status | grep started)
 	[[ -n $distcc_status ]] && distcc="true"
 	[[ -z $distcc_status ]] && distcc="false"
+    hostsLength=${#hosts[@]}
 	hostsOnline=0
 	if [[ $localhostmode == "false" && $distcc == "true" ]]; then
-		hostsLength=${#hosts[@]}
 		tj=0	
 		# check if hosts are online
 		for (( i=0; i<${hostsLength}; i++ ));
@@ -105,9 +106,19 @@ find_total_threads()
 	fi
 	if [[ $localhostmode == "true" || $distcc == "false" 
 	|| $(echo "$hostsOnline <= 1" | bc) == '1' ]]; then
-		[[ $distcc == "false" ]] && echo -e "${RED}Service distccd is not started.${RED}"
-		tj=$(cat /proc/cpuinfo  | grep siblings | sort -u | awk -F ": " '{print $NF}')
-		echo -e "\n${GREEN}Localhost mode enabled.${NOC}"
+		[[ $localhostmode == "false" && $distcc == "false" ]] && echo -e "${RED}Service distccd is not started.${RED}"
+        if [[ $localhostmode == "true" ]]; then
+            for (( i=0; i<${hostsLength}; i++ ))
+            do
+                if [[ ${hosts[$i]} == $(hostname) ]]; then
+                    tj=${hostsTJ[$i]}
+		            echo -e "${GREEN}Localhost mode enabled.${NOC}"
+                    break
+                fi
+            done
+        elif [[ $distcc == "false" ]]; then 
+            tj=$(cat /proc/cpuinfo  | grep siblings | sort -u | awk -F ": " '{print $NF}')
+        fi
 	fi
 }
 
@@ -115,7 +126,11 @@ make_kernel()
 {
 	find_total_threads
 	echo -e "${GREEN}Making kernel with ${BLUE}$tj${GREEN} threads...${NOC}"
-	make -j$tj CC="distcc gcc"
+	if [[ $distcc == "true" ]]; then
+        make -j$tj CC="distcc gcc"
+    else
+        make -j$tj CC="gcc"
+    fi
 	echo -e "\n${GREEN}Making and installing modules...${NOC}"
 	make modules_install
 	echo -e "\nInstalling kernel to /boot..."
