@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+# lot of bashisms im so fucking sorry :(
 #
 #	buildkernel automatically builds the linux source tree symlinked in /usr/src/linux.
 #	Also handles initramfs generation, unified kernel generation, upgrading kernel .config to another kernel, 
