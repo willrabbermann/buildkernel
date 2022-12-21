@@ -26,9 +26,9 @@
 SECUREBOOTKEY="/usr/share/secureboot/keys/db/db.key"
 SECUREBOOTCERT="/usr/share/secureboot/keys/db/db.pem"
 # host names to check for distcc 
-declare -a hosts=("gentoo" "gentwo" "genthree") 
+declare -a hosts=("host_one" "host_two" "host_three") 
 # thread count for each host name
-declare -a hostsTJ=("6" "10" "8")
+declare -a hostsTJ=("6" "8" "8")
 distcc="false"
 distcc_status=$(rc-service distccd status | grep started)
 
