@@ -11,8 +11,17 @@
 #				Add: globs="/boot/EFI/gentoo/distribution/vmlinuz-* /boot/EFI/gentoo/custom/vmlinuz-* /boot/EFI/gentoo/git/vmlinuz-*"
 #				to /etc/grub.d/09_custom after copying /etc/grub.d/10_linux to /etc/grub.d/09_custom as a template. Remove the old globs.
 #			3. sys-kernel/dracut for initramfs and unified kernel image generation. (see 'man /etc/dracut.conf' add secure boot key, etc)
-#			4. (optional) app-crypt/sbctl for secure boot.
-#			5. (optional) sys-apps/systemd-utils +boot USE flag is required for dracut to generate unified kernels images.
+#			4.	(efi-boot) app-crypt/sbctl & app-crypt/sbsigntools for secure boot
+#
+#				Set your /etc/dracut.conf.d/custom.conf with key and uefi_stub location:
+#				-------
+#				uefi_stub="/usr/lib/systemd/boot/efi/linuxx64.efi.stub"
+#				uefi_secureboot_cert="/usr/share/secureboot/keys/db/db.pem"
+#				uefi_secureboot_key="/usr/share/secureboot/keys/db/db.key"
+#				-------
+#
+#			5. (efi-boot) sys-apps/systemd-utils +boot USE flag is required for dracut to generate unified kernels images.
+#
 #			6. (optional) sys-devel/distcc for distributed compiling across local computers. 
 #				Change hosts and hostsTJ below to reflect host names and thread count respectively. Localhost mode automatically finds
 #				and builds with the thread count of your processor.
@@ -198,7 +207,7 @@ move_build()
 	[ -n "$efi"    ] && mv $efi /boot/EFI/gentoo
 	
 	[[ -n $(lscpu | grep Intel) && -a "/boot/amd-uc.img" ]] && rm /boot/amd-uc.img
-        [[ -n $(lscpu | grep AMD) && -a "/boot/intel-uc.img" ]] && rm /boot/intel-uc.img	
+	[[ -n $(lscpu | grep AMD) && -a "/boot/intel-uc.img" ]] && rm /boot/intel-uc.img	
 }
 
 regen_grub() 
