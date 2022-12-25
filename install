@@ -3,7 +3,6 @@
 if [ -z $1 ] 
 then
 	cp -v buildkernel /usr/local/sbin/buildkernel
-	exit 0
 else
 	cp -v buildkernel $1
 fi
