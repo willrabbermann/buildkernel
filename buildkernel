@@ -42,12 +42,11 @@ if [ "$EUID" -ne 0 ]; then
     exit
 fi
 
-# use sbctl to manage keys
+# sbctl to manage keys
 SECUREBOOTKEY="/usr/share/secureboot/keys/db/db.key"
 SECUREBOOTCERT="/usr/share/secureboot/keys/db/db.pem"
-# host names to check for distcc 
+# host names 
 declare -a hosts=("host_one" "host_two" "host_three") 
-# thread count for each host name
 declare -a hostsTJ=("6" "8" "8")
 
 yes_or_no()
