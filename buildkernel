@@ -286,6 +286,8 @@ clean_cache()
 	echo -e "( rm -rf /var/cache/* )${NOC}"
 	if (yes_or_no "$input") then
 		rm -rf /var/cache/*
+	else
+		exit
 	fi
 	echo -e "${GREEN}Done.${NOC}"
 }
