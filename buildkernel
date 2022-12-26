@@ -31,6 +31,17 @@
 #	Run 'buildkernel --help' for the help page.
 #
 
+# Color definitions
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NOC='\033[0m'
+
+if [ "$EUID" -ne 0 ]; then
+    echo -e "${RED}Please run as root.${NOC}"
+    exit
+fi
+
 # use sbctl to manage keys
 SECUREBOOTKEY="/usr/share/secureboot/keys/db/db.key"
 SECUREBOOTCERT="/usr/share/secureboot/keys/db/db.pem"
@@ -40,12 +51,6 @@ declare -a hosts=("host_one" "host_two" "host_three")
 declare -a hostsTJ=("6" "8" "8")
 distcc="false"
 distcc_status=$(rc-service distccd status | grep started)
-
-# Color definitions
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m' 
-NOC='\033[0m'
 
 yes_or_no()
 {
@@ -243,10 +248,51 @@ upgrade_kernel()
 	fi
 }
 
-if [ "$EUID" -ne 0 ]; then 
-	echo -e "${RED}Please run as root.${NOC}"
-	exit
-fi
+remove_kernels()
+{
+    baseDir="/boot/EFI/gentoo"
+    echo -e "${GREEN}Kernels in $baseDir/*${NOC}\n"
+    cd $baseDir
+    ls custom/ | grep vmlinuz && ls distribution/ | grep vmlinuz && ls git/ | grep vmlinuz
+    echo -e "\n${GREEN}Enter part of the full kernel name to remove wildcards.${NOC}\n"
+    read rkn
+    echo -e "\n${RED}Are you sure you want to remove these kernels?"
+    echo -e "(including sysmap, initramfs, configs, and modules)${NOC}\n"
+    found=$(ls custom/ | grep vmlinuz | grep $rkn)
+    found=$found"\n$(ls distribution/ | grep vmlinuz | grep $rkn)"
+    found=$found"\n$(ls git/ | grep vmlinuz | grep $rkn)"
+    echo -e "$found\n"
+    if (yes_or_no "$input") then
+        cd $baseDir/custom
+        echo -e "${GREEN}Checking /custom${NOC}"
+        rm -Iv *$rkn*
+        echo -e "${GREEN}Checking /distribution${NOC}"
+        cd $baseDir/distribution
+        rm -Iv *$rkn*
+        echo -e "${GREEN}Checking /git${NOC}"
+        cd $baseDir/git
+        rm -Iv *$rkn*
+        echo -e "${GREEN}Checking /lib/modules${NOC}"
+        cd /lib/modules
+        rm -Ir *$rkn*
+    else
+        exit 0
+    fi
+
+    echo -e "${BLUE}Dont forget to regen grub.cfg!${NOC}"
+}
+
+clean_cache()
+{
+	echo -e "${RED}Are you sure you want to clean out the cache directory?"
+	echo -e "( rm -rf /var/cache/* )${NOC}"
+	if (yes_or_no "$input") then
+		rm -rf /var/cache/*
+	fi
+	echo -e "${GREEN}Done.${NOC}"
+}
+
+
 
 case $2 in
 	"localhost" | "local" | 'l' | '-l' | "--local" | "--localhost")
@@ -280,6 +326,10 @@ case $1 in
 		eselect kernel list
 		exit
 	;;
+	'clean' | 'cl' | '-cl' | '--clean')
+		clean_cache
+		exit
+	;;
 	'auto' | 'a' | '-a' | '--auto')
 		build
 		build_initramfs
@@ -292,8 +342,12 @@ case $1 in
 		menu_config
 		exit
 	;;
+	'rmk' | '-rmk' | '--rmkernels' | '--removekernels')
+		remove_kernels
+		exit
+	;;
 	*)
-		echo -e "buildkernel   [${GREEN}-m -r -b -a ${BLUE}-l${GREEN} -i -im -u -me -c -h${NOC}] [${BLUE}kernel_version,localhost${NOC}]"
+		echo -e "buildkernel   [${GREEN}-m -r -b -a ${BLUE}-l${GREEN} -i -im -u -me -c -cl -rmk -h${NOC}] [${BLUE}kernel_version,localhost${NOC}]"
 		echo -e "${GREEN}--move${NOC}         -- move build files."
 		echo -e "${GREEN}--regen${NOC}        -- regenerate /boot/grub/grub.cfg and exit."
 		echo -e "${GREEN}--build${NOC}        -- build /usr/src/linux and exit."
@@ -304,6 +358,8 @@ case $1 in
 		echo -e "${GREEN}--upgrade${NOC}      -- copy the .config of the current kernel to a new kernel directory."
 		echo -e "${GREEN}--menu${NOC}         -- open menuconfig in /usr/src/linux."
 		echo -e "${GREEN}--current${NOC}      -- print current kernel(s) in eselect and exit."
+		echo -e "${GREEN}--clean${NOC}        -- clean cache directory: /var/cache/*"
+		echo -e "${GREEN}--rmkernels${NOC}    -- remove old kernels and modules using a wildcard."
 		echo -e "${GREEN}--help${NOC}         -- print this help page and exit."
 		exit
 	;;
