@@ -49,8 +49,6 @@ SECUREBOOTCERT="/usr/share/secureboot/keys/db/db.pem"
 declare -a hosts=("host_one" "host_two" "host_three") 
 # thread count for each host name
 declare -a hostsTJ=("6" "8" "8")
-distcc="false"
-distcc_status=$(rc-service distccd status | grep started)
 
 yes_or_no()
 {
@@ -101,6 +99,7 @@ build_initramfs()
 
 find_total_threads()
 {
+	distcc_status=$(rc-service distccd status | grep started)
 	[[ -n $distcc_status ]] && distcc="true"
 	[[ -z $distcc_status ]] && distcc="false"
     hostsLength=${#hosts[@]}
