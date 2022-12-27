@@ -108,8 +108,10 @@ find_total_threads()
 		# check if hosts are online
 		for (( i=0; i<${hostsLength}; i++ ));
 		do
-			pingExitCode=$(ping ${hosts[$i]} -c1 -W 0.5; echo $?)
-			if [ 0 == "$pingExitCode" ]; then
+			pingResponse=$(ping ${hosts[$i]} -c 1 -W 0.5)
+			pingExitCode=$(echo $?)
+			if [ 0 = "$pingExitCode" ] 
+			then
 				tj=$(echo "$tj + ${hostsTJ[$i]}" | bc)	
 				hostsOnline=$(echo "$hostsOnline + 1" | bc)
 			else
@@ -131,6 +133,7 @@ find_total_threads()
             done
         elif [[ $distcc == "false" || $(echo "$hostsOnline <= 1" | bc) == 1 ]]; then 
             tj=$(cat /proc/cpuinfo  | grep siblings | sort -u | awk -F ": " '{print $NF}')
+			echo -e "${GREEN}Localhost mode enabled.${NOC}"
         fi
 	fi
 }
